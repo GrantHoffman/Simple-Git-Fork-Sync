@@ -98,7 +98,7 @@ simpleGitForkSync.createDialog = function (id, title)
 
 simpleGitForkSync.updateRepoFromApi = function ()
 {
-	var selectedOption = jQuery('#selectRepoId').find(':selected');
+	var selectedOption = jQuery('#' + simpleGitForkSync.selectRepoId).find(':selected');
 	var base = selectedOption.data('base');
 	var fork = selectedOption.data('fork');
 	
