@@ -10,48 +10,7 @@ simpleGitForkSync.isAuthenticated = false;
 
 simpleGitForkSync.init = function () 
 {
-	// if loaded just update the repositories
-	if(simpleGitForkSync.loaded)
-	{
-		return simpleGitForkSync.updateRepos();
-	}
-	
-	// if not loaded make sure we don't overwrite the existing jQuery
-	else if(typeof jQuery !== 'undefined')
-	{
-		return simpleGitForkSync.loadjQueryUI();
-	}
-   
-   
-	var jQueryScriptTag = document.createElement('script');  
-	jQueryScriptTag.setAttribute('src', '//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js');
-	jQueryScriptTag.setAttribute('onload', 'simpleGitForkSync.loadjQueryUI()');
-	document.getElementsByTagName('body')[0].appendChild(jQueryScriptTag);
-   
-}
-   
-simpleGitForkSync.loadjQueryUI = function () {
-	
-	if(jQuery.ui)
-	{
-		return simpleGitForkSync.loadjQueryUICss();
-	}
-	
-	jQueryUIScriptTag = document.createElement('script');
-	jQueryUIScriptTag.setAttribute('src', '//ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js');
-    jQueryUIScriptTag.setAttribute('onload', 'simpleGitForkSync.loadjQueryUICss()');
-    document.getElementsByTagName('body')[0].appendChild(jQueryUIScriptTag);
-}
-
-simpleGitForkSync.loaded = false;
-
-simpleGitForkSync.loadjQueryUICss = function () {    
-	jQueryUICssTag = document.createElement('link');
-	jQueryUICssTag.setAttribute('href', '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.css');
-	jQueryUICssTag.setAttribute('rel', 'stylesheet');
-    jQueryUICssTag.setAttribute('onload', 'simpleGitForkSync.updateRepos()');
-    document.getElementsByTagName('body')[0].appendChild(jQueryUICssTag);
-	simpleGitForkSync.cssLoaded = false;
+	simpleGitForkSync.updateRepos();
 }
 
 simpleGitForkSync.showDialog = function (repoMap) {
@@ -74,15 +33,19 @@ simpleGitForkSync.showDialog = function (repoMap) {
 					   },
 					   {
 							text: "Unauthenticate",
-							click: function() {
-								simpleGitForkSync.isAuthenticated = false;
-							}				
+							click: simpleGitForkSync.unauthenticate
 						}
 					 ]
 		});
 		
 		simpleGitForkSync.createDropDownList('Select Repository: ', simpleGitForkSync.selectRepoId, repoMap)
 	}
+}
+
+simpleGitForkSync.unauthenticate = function ()
+{
+	simpleGitForkSync.isAuthenticated = false;
+	localStorage.clear();
 }
 
 simpleGitForkSync.createDialog = function (id, title)
@@ -179,7 +142,10 @@ simpleGitForkSync.updateRepos = function () {
 				
 				console.log(repoMap)
 		  },
-		  error: function(jqXHR, textStatus, errorThrown) { console.log(jqXHR); }
+		  error: function(jqXHR, textStatus, errorThrown) { 
+			console.log(jqXHR); 
+			simpleGitForkSync.unauthenticate();
+			}
 		});
 	});
 }
@@ -200,7 +166,10 @@ simpleGitForkSync.getLatestCommitAndPatch = function(base, fork)
 				var sha = data.object.sha
 				simpleGitForkSync.patchFork(fork, sha);
 			},
-		  error: function(jqXHR, textStatus, errorThrown) { console.log(jqXHR); }
+		  error: function(jqXHR, textStatus, errorThrown) { 
+				console.log(jqXHR); 
+				simpleGitForkSync.unauthenticate();
+			}
 		});
 	});
 }
@@ -224,7 +193,10 @@ simpleGitForkSync.patchFork = function (fork, sha) {
 				console.log(data); 
 				alert('success');
 			},
-		  error: function(jqXHR, textStatus, errorThrown) { console.log(jqXHR); }
+		  error: function(jqXHR, textStatus, errorThrown) { 
+			console.log(jqXHR); 
+			simpleGitForkSync.unauthenticate();
+		  }
 		});
 	});
 }
@@ -235,7 +207,7 @@ simpleGitForkSync.createAuthenticationDialog = function(callback)
 		jQuery('<label> Username: </label>').appendTo(dialog);
 		jQuery('<input/>').attr({ type: 'text', id: simpleGitForkSync.usernameId}).appendTo(dialog);
 		jQuery('<br><label> Password/Token: </label>').appendTo(dialog);
-		jQuery('<input/>').attr({ type: 'text', id: simpleGitForkSync.authenticationKeyId}).appendTo(dialog);
+		jQuery('<input/>').attr({ type: 'password', id: simpleGitForkSync.authenticationKeyId}).appendTo(dialog);
 		
 		jQuery("#" + simpleGitForkSync.authenticationDialogId).dialog({
 			minWidth: 520,
@@ -250,8 +222,16 @@ simpleGitForkSync.createAuthenticationDialog = function(callback)
 							id: simpleGitForkSync.authenticationOkButtonId,
 							text: 'OK',
 							click: function() { 
-									simpleGitForkSync.username = jQuery('#' + simpleGitForkSync.usernameId).val();
-									simpleGitForkSync.authenticationKey = jQuery('#' + simpleGitForkSync.authenticationKeyId).val();
+									
+									var username = jQuery('#' + simpleGitForkSync.usernameId).val()
+									simpleGitForkSync.username = username;
+									localStorage.setItem('username', username);
+									
+									
+									var authenticationKey = jQuery('#' + simpleGitForkSync.authenticationKeyId).val();
+									simpleGitForkSync.authenticationKey = authenticationKey;
+									localStorage.setItem('authenticationKey', authenticationKey);
+									
 									simpleGitForkSync.isAuthenticated = true;
 									callback();
 									jQuery(this).dialog("close"); 
@@ -259,11 +239,21 @@ simpleGitForkSync.createAuthenticationDialog = function(callback)
 							 }
 						}
 					 ]
-		});
+		});	
 }
 
 simpleGitForkSync.getUserLogin = function (callback) 
 {
+	var username = localStorage.getItem('username');							
+	var authenticationKey = localStorage.getItem('authenticationKey');
+	
+	if(username && authenticationKey)
+	{
+		simpleGitForkSync.username = username;
+		simpleGitForkSync.authenticationKey = authenticationKey;
+		simpleGitForkSync.isAuthenticated = true;
+	}
+	
 	if(!simpleGitForkSync.username || !simpleGitForkSync.authenticationKey || !simpleGitForkSync.isAuthenticated)
 	{
 		simpleGitForkSync.createAuthenticationDialog(callback);
@@ -278,4 +268,3 @@ console.log('loaded');
 
 document.addEventListener('DOMContentLoaded', simpleGitForkSync.init);
 
-//document.getElementsByTagName('body')[0].addEventListener('load', simpleGitForkSync.init);
