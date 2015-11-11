@@ -1,4 +1,3 @@
-
 var simpleGitForkSync = {}
 
 simpleGitForkSync.dialogId = 'fork-sync-dialog-id';
@@ -275,4 +274,8 @@ simpleGitForkSync.getUserLogin = function (callback)
 	}
 }
 
-console.log('ok')
+console.log('loaded');
+
+document.addEventListener('DOMContentLoaded', simpleGitForkSync.init);
+
+//document.getElementsByTagName('body')[0].addEventListener('load', simpleGitForkSync.init);
