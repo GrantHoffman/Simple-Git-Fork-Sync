@@ -191,10 +191,12 @@ simpleGitForkSync.patchFork = function (fork, sha) {
 		  cache: false,
 		  success: function(data, textStatus, jqXHR) { 
 				console.log(data); 
-				alert('success');
+				console.log('success');
+				
 			},
 		  error: function(jqXHR, textStatus, errorThrown) { 
 			console.log(jqXHR); 
+			alert('fail');
 			simpleGitForkSync.unauthenticate();
 		  }
 		});
